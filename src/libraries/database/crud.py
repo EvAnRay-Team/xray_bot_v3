@@ -12,19 +12,30 @@ async def get_user_by_platform_id(
     session: AsyncSession, platform: PlatfromType, user_id: str | int
 ) -> Optional[User]:
     stmt = select(User)
+
+    has_condition = False
+
     if platform == PlatfromType.ONEBOT_V11:
         try:
             stmt = stmt.where(User.qid == int(user_id))
+            has_condition = True
         except ValueError:
             return None
     elif platform == PlatfromType.QQ_DIRECT:
         stmt = stmt.where(User.user_openid == str(user_id))
+        has_condition = True
     elif platform == PlatfromType.QQ_GROUP:
         stmt = stmt.where(User.group_openid == str(user_id))
+        has_condition = True
     elif platform == PlatfromType.QQ_GUILD:
         stmt = stmt.where(User.member_user_id == str(user_id))
+        has_condition = True
+
+    if not has_condition:
+        return None
 
     result = await session.execute(stmt)
+
 
     return result.scalar_one_or_none()
 
