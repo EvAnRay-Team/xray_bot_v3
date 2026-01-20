@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, IntEnum
 
 
 class PlatfromType(Enum):
@@ -6,3 +6,11 @@ class PlatfromType(Enum):
     QQ_DIRECT = "qq_direct"
     QQ_GROUP = "qq_group"
     QQ_GUILD = "qq_guild"
+
+
+class AliasStatus(IntEnum):
+    SCORING = 0
+    TIMEOUT = 1
+    PASSED = 2
+    ADMIN_PASSED = 3
+    ADMIN_REJECTED = 4
