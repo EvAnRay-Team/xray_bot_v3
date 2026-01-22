@@ -73,7 +73,7 @@ async def get_user_config(
 async def create_user_config(
     session: async_scoped_session, config_cls: type[ConfigBase], user_id: UUID
 ) -> ConfigBase:
-    config = config_cls(user_id=user_id)
+    config = config_cls(user_id=user_id, id=uuid4())
     session.add(config)
     await session.flush()
     await session.refresh(config)
