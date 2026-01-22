@@ -1,4 +1,3 @@
-
 from datetime import datetime
 
 from nonebot_plugin_orm import Model
@@ -15,7 +14,10 @@ class Abstract(Model):
     nickname: Mapped[str]
     file_key: Mapped[str]
     create_time: Mapped[datetime] = mapped_column(default=datetime.now)
-    update_time: Mapped[datetime] = mapped_column(default=datetime.now, onupdate=datetime.now)
+    update_time: Mapped[datetime] = mapped_column(
+        default=datetime.now, onupdate=datetime.now
+    )
+
 
 class Alias(Model):
     __tablename__ = "aliases"
@@ -25,7 +27,10 @@ class Alias(Model):
     title: Mapped[str]
     status: Mapped[int]
     create_time: Mapped[datetime] = mapped_column(default=datetime.now)
-    update_time: Mapped[datetime] = mapped_column(default=datetime.now, onupdate=datetime.now)
+    update_time: Mapped[datetime] = mapped_column(
+        default=datetime.now, onupdate=datetime.now
+    )
+
 
 class AliasApply(Model):
     __tablename__ = "alias_applies"
@@ -36,7 +41,10 @@ class AliasApply(Model):
     group_id: Mapped[int]
     status: Mapped[AliasStatus]
     create_time: Mapped[datetime] = mapped_column(default=datetime.now)
-    update_time: Mapped[datetime] = mapped_column(default=datetime.now, onupdate=datetime.now)
+    update_time: Mapped[datetime] = mapped_column(
+        default=datetime.now, onupdate=datetime.now
+    )
+
 
 class AliasVote(Model):
     __tablename__ = "alias_votes"
@@ -45,6 +53,7 @@ class AliasVote(Model):
     group_id: Mapped[int]
     score: Mapped[int]
     create_time: Mapped[datetime] = mapped_column(default=datetime.now)
+
 
 class UserConfig(Model):
     __tablename__ = "user_configs"

@@ -1,39 +1,80 @@
 from uuid import UUID, uuid4
-from nonebot_plugin_orm import AsyncSession
+
+from nonebot_plugin_orm import async_scoped_session
 from sqlalchemy import select
 
-from .models import User
+from src.plugins.user_module.models.config_base import ConfigBase
+
+from .enums import AdapterType
+from .exceptions import UnsupportedAdapterError
+from .models import User, UserAuth
 
 
-def get_user_adapter_field(adapter: str, adapter_id: str | int) -> tuple:
+def get_adapter_type_by_name(adapter: str) -> AdapterType:
     match adapter:
         case "OneBot V11":
-            return User.qid, int(adapter_id)
+            return AdapterType.ONEBOT_V11
         case "QQ":
-            return User.openid, str(adapter_id)
+            return AdapterType.QQ
         case _:
-            error_message = "Unsupported adapter: {}"
-            raise ValueError(error_message.format(adapter))
+            raise UnsupportedAdapterError(adapter)
 
 
+def get_user_auth_type_and_external_id(
+    adapter: str, external_id: str | int
+) -> tuple[AdapterType, str]:
+    adapter_type = get_adapter_type_by_name(adapter)
+    return adapter_type, str(external_id)
 
-async def get_user_by_id(
-    session: AsyncSession, adapter: str, adapter_id: str | int
+
+async def get_user_by_adapter_and_external_id(
+    session: async_scoped_session, adapter: str, external_id: str | int
 ) -> User | None:
-    field, value = get_user_adapter_field(adapter, adapter_id)
-    stmt = select(User).where(field == value)
+    auth_type, normalized_external_id = get_user_auth_type_and_external_id(
+        adapter, external_id
+    )
+    stmt = (
+        select(User)
+        .join(UserAuth, User.id == UserAuth.user_id)
+        .where(
+            UserAuth.type == auth_type.value,
+            UserAuth.external_id == normalized_external_id,
+        )
+    )
     result = await session.execute(stmt)
     return result.scalar_one_or_none()
 
 
 async def create_user(
-    session: AsyncSession, adapter: str, adapter_id: str | int
+    session: async_scoped_session, adapter: str, adapter_id: str | int
 ) -> User:
     new_user = User()
     new_user.id = uuid4()
-    field, value = get_user_adapter_field(adapter, adapter_id)
-    setattr(new_user, field.key, value)
     session.add(new_user)
-    await session.commit()
+    await session.flush()  # 先写入user，获取id
+    auth_type, external_id = get_user_auth_type_and_external_id(adapter, adapter_id)
+    new_auth = UserAuth(
+        user_id=new_user.id, external_id=external_id, type=auth_type.value
+    )
+    session.add(new_auth)
+    await session.flush()
     await session.refresh(new_user)
     return new_user
+
+
+async def get_user_config(
+    session: async_scoped_session, config_cls: type[ConfigBase], user_id: UUID
+) -> ConfigBase | None:
+    stmt = select(config_cls).where(config_cls.user_id == user_id)
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()
+
+
+async def create_user_config(
+    session: async_scoped_session, config_cls: type[ConfigBase], user_id: UUID
+) -> ConfigBase:
+    config = config_cls(user_id=user_id)
+    session.add(config)
+    await session.flush()
+    await session.refresh(config)
+    return config
