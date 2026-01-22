@@ -54,7 +54,7 @@ async def create_user(
     await session.flush()  # 先写入user，获取id
     auth_type, external_id = get_user_auth_type_and_external_id(adapter, adapter_id)
     new_auth = UserAuth(
-        user_id=new_user.id, external_id=external_id, type=auth_type.value
+        id=uuid4(), user_id=new_user.id, external_id=external_id, type=auth_type.value
     )
     session.add(new_auth)
     await session.flush()

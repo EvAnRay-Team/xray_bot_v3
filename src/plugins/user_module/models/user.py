@@ -20,7 +20,7 @@ class User(Model):
 
 class UserAuth(Model):
     __tablename__ = "user_auths"
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[UUID] = mapped_column(primary_key=True)
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"))
     external_id: Mapped[str] = mapped_column(unique=True, nullable=True)
     type: Mapped[str]  # 认证类型，如 'qq', 'wechat' 等
