@@ -143,3 +143,11 @@ dmypy.json
 .env.dev
 .env.prod
 .vscode
+
+# Runtime Data
+data/
+
+# Dev Scripts
+dev/
+
+resources/

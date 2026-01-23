@@ -27,7 +27,6 @@ async def get_user(bot: Bot, event: Event) -> User:
     return user
 
 
-
 def get_user_config(
     config_cls: type[ConfigBase],
 ) -> Callable[..., Awaitable[ConfigBase]]:
