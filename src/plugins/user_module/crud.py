@@ -54,7 +54,7 @@ async def create_user(
     await session.flush()  # 先写入user，获取id
     auth_type, external_id = get_user_auth_type_and_external_id(adapter, adapter_id)
     new_auth = UserAuth(
-        user_id=new_user.id, external_id=external_id, type=auth_type.value
+        id=uuid4(), user_id=new_user.id, external_id=external_id, type=auth_type.value
     )
     session.add(new_auth)
     await session.flush()
@@ -73,7 +73,7 @@ async def get_user_config(
 async def create_user_config(
     session: async_scoped_session, config_cls: type[ConfigBase], user_id: UUID
 ) -> ConfigBase:
-    config = config_cls(user_id=user_id)
+    config = config_cls(user_id=user_id, id=uuid4())
     session.add(config)
     await session.flush()
     await session.refresh(config)
