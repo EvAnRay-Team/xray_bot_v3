@@ -1,0 +1,203 @@
+import base64
+import re
+import secrets
+from datetime import UTC, datetime, timedelta
+from uuid import uuid4
+
+from nonebot import logger, on_command
+from nonebot.adapters import Message
+from nonebot.params import CommandArg, Depends
+from nonebot.rule import to_me
+from nonebot_plugin_orm import async_scoped_session
+from sqlalchemy import exists, select, update
+from sqlalchemy.exc import SQLAlchemyError
+
+from plugins.user_module.enums import BindType
+from plugins.user_module.models.bind import BindToken
+from src.plugins.user_module.deps import get_user
+from src.plugins.user_module.models.user import User, UserAuth
+
+from .rule import request_rule
+
+BindUserRequestCommand = on_command("bind_user_request", rule=request_rule, block=True)
+BindUserConfirmCommand = on_command("bind_user_confirm", rule=to_me(), block=True)
+BindUserFinalizeCommand = on_command("bind_user_finalize", rule=to_me(), block=True)
+
+
+def validate_handshake_token(token: str) -> bool:
+    return bool(re.fullmatch(r"[A-Z2-7]{10}", token))
+
+
+async def get_confirm_token(args: Message = CommandArg()) -> str | None:
+    if (token := args.extract_plain_text().strip()) and validate_handshake_token(token):
+        return token
+    await BindUserConfirmCommand.finish(
+        "请提供有效的握手令牌（10位大写字母和数字2-7组成）"
+    )
+    return None
+
+
+async def get_finalize_token(args: Message = CommandArg()) -> str | None:
+    if (token := args.extract_plain_text().strip()) and validate_handshake_token(token):
+        return token
+    await BindUserFinalizeCommand.finish(
+        "请提供有效的握手令牌（10位大写字母和数字2-7组成）"
+    )
+    return None
+
+
+def generate_random_token() -> str:
+    """
+    生成一个随机的握手令牌，十位大写字母和数字2-7组成。
+
+    :return: 生成的握手令牌
+    :rtype: str
+    """
+    return base64.b32encode(secrets.token_bytes(7)).decode()[:10]
+
+
+@BindUserRequestCommand.handle()
+async def _(session: async_scoped_session, user: User = Depends(get_user)):
+    # 用户的主账号发起绑定请求触发的指令
+    now = datetime.now(UTC)
+    expires = now + timedelta(minutes=5)
+    bind_token = None
+    for _ in range(5):
+        token_str = generate_random_token()
+        existing_token = await session.scalar(
+            select(BindToken)
+            .where(BindToken.token == token_str)
+            .where(BindToken.expires_at > now)
+        )
+        if existing_token:
+            logger.warning(
+                "生成绑定令牌时发生冲突，尝试重新生成。冲突令牌: %s", token_str
+            )
+            continue
+        bind_token = BindToken(
+            id=uuid4(),
+            token=token_str,
+            main_user_id=user.id,
+            type=BindType.REQUEST,
+            created_at=now,
+            expires_at=expires,
+            sub_user_id=None,
+        )
+        session.add(bind_token)
+        break
+    if bind_token:
+        try:
+            await session.commit()
+            await BindUserRequestCommand.finish(
+                f"已生成绑定令牌: {bind_token.token}\n请在5分钟内完成绑定。"
+            )
+        except SQLAlchemyError as e:
+            logger.error("生成绑定令牌时发生数据库错误: %s", e)
+            await BindUserRequestCommand.finish("生成绑定令牌失败，请稍后重试。")
+    else:
+        logger.error("生成绑定令牌失败，尝试多次后仍未成功。")
+        await BindUserRequestCommand.finish("生成绑定令牌失败，请稍后重试。")
+
+
+@BindUserConfirmCommand.handle()
+async def _(
+    session: async_scoped_session,
+    user: User = Depends(get_user),
+    token: str = Depends(get_confirm_token),
+):
+    # 用户的子账号响应绑定请求触发的指令
+    bind_token = await session.scalar(
+        select(BindToken)
+        .where(BindToken.token == token)
+        .where(BindToken.type == BindType.REQUEST)
+        .where(BindToken.expires_at > datetime.now(UTC))
+    )
+    if bind_token is None:
+        await BindUserConfirmCommand.finish("无效或已过期的绑定令牌。")
+    now = datetime.now(UTC)
+    expires = now + timedelta(minutes=5)
+    confirm_bind_token = None
+    for _ in range(5):
+        confirm_token = generate_random_token()
+        existing_token = await session.scalar(
+            select(BindToken)
+            .where(BindToken.token == confirm_token)
+            .where(BindToken.expires_at > now)
+        )
+        if existing_token:
+            logger.warning(
+                "生成确认令牌时发生冲突，尝试重新生成。冲突令牌: %s", confirm_token
+            )
+            continue
+        confirm_bind_token = BindToken(
+            id=uuid4(),
+            token=confirm_token,
+            main_user_id=bind_token.main_user_id,
+            type=BindType.CONFIRM,
+            created_at=now,
+            expires_at=expires,
+            sub_user_id=user.id,
+        )
+        session.add(confirm_bind_token)
+        break
+    if confirm_bind_token:
+        try:
+            await session.commit()
+            await BindUserConfirmCommand.finish(
+                f"绑定请求已确认。请将以下握手令牌提供给主账号以完成绑定: {
+                    confirm_bind_token.token
+                }"
+            )
+        except SQLAlchemyError as e:
+            logger.error("生成确认令牌时发生数据库错误: %s", e)
+            await BindUserConfirmCommand.finish("生成确认令牌失败，请稍后重试。")
+
+    else:
+        logger.error("生成确认令牌失败，尝试多次后仍未成功。")
+        await BindUserConfirmCommand.finish("生成确认令牌失败，请稍后重试。")
+
+
+@BindUserFinalizeCommand.handle()
+async def _(
+    session: async_scoped_session,
+    user: User = Depends(get_user),
+    token: str = Depends(get_finalize_token),
+):
+    # 1. 查找确认token
+    bind_token = await session.scalar(
+        select(BindToken)
+        .where(BindToken.token == token)
+        .where(BindToken.type == BindType.CONFIRM)
+        .where(BindToken.main_user_id == user.id)
+        .where(BindToken.expires_at > datetime.now(UTC))
+    )
+    if not bind_token:
+        logger.warning(
+            "尝试使用无效或过期的确认令牌完成绑定，用户ID: %s, 令牌: %s",
+            user.id,
+            token,
+        )
+        await BindUserFinalizeCommand.finish("无效或已过期的确认令牌。")
+    # 2. 迁移sub_user_id下所有UserAuth到main_user_id
+    sub_user_id = bind_token.sub_user_id
+    if not sub_user_id:
+        logger.error(
+            "绑定信息不完整，无法完成绑定。主账号ID: %s, 确认令牌: %s", user.id, token
+        )
+        await BindUserFinalizeCommand.finish("绑定信息不完整，无法完成绑定。")
+    # 使用数据库批量迁移，避免全部加载到内存
+    userauth_tbl = UserAuth.__table__
+    subq = select(1).where(
+        (userauth_tbl.c.user_id == user.id)
+        & (userauth_tbl.c.type == UserAuth.type)
+        & (userauth_tbl.c.external_id == UserAuth.external_id)
+    )
+    stmt = (
+        update(UserAuth)
+        .where(UserAuth.user_id == sub_user_id)
+        .where(~exists(subq))
+        .values(user_id=user.id)
+    )
+    await session.execute(stmt)
+    await session.commit()
+    await BindUserFinalizeCommand.finish("绑定完成，所有认证信息已合并到主账号。")
