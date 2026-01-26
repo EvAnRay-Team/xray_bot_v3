@@ -25,10 +25,22 @@ BindUserFinalizeCommand = on_command("bind_user_finalize", rule=to_me(), block=T
 
 
 def validate_handshake_token(token: str) -> bool:
+    """
+    验证握手令牌格式是否正确。
+
+    :param token: 待验证的令牌
+    :return: 如果令牌格式正确（10位大写字母和数字2-7），返回 True；否则返回 False
+    """
     return bool(re.fullmatch(r"[A-Z2-7]{10}", token))
 
 
 async def get_confirm_token(args: Message = CommandArg()) -> str | None:
+    """
+    获取并验证确认命令中的握手令牌参数。
+
+    :param args: 命令参数
+    :return: 有效的令牌字符串，如果无效直接结束当前事件处理
+    """
     if (token := args.extract_plain_text().strip()) and validate_handshake_token(token):
         return token
     await BindUserConfirmCommand.finish(
@@ -38,6 +50,12 @@ async def get_confirm_token(args: Message = CommandArg()) -> str | None:
 
 
 async def get_finalize_token(args: Message = CommandArg()) -> str | None:
+    """
+    获取并验证完成绑定命令中的握手令牌参数。
+
+    :param args: 命令参数
+    :return: 有效的令牌字符串，如果无效直接结束当前事件处理
+    """
     if (token := args.extract_plain_text().strip()) and validate_handshake_token(token):
         return token
     await BindUserFinalizeCommand.finish(
@@ -58,6 +76,15 @@ def generate_random_token() -> str:
 
 @BindUserRequestCommand.handle()
 async def _(session: async_scoped_session, user: User = Depends(get_user)):
+    """
+    处理用户绑定请求指令（第一步）。
+
+    主账号发起绑定请求，生成一个有效期的请求令牌。
+    用户需将此令牌发送给希望绑定的子账号。
+
+    :param session: 数据库会话
+    :param user: 当前发送指令的用户（主账号）
+    """
     # 用户的主账号发起绑定请求触发的指令
     now = datetime.now(UTC)
     expires = now + timedelta(minutes=5)
@@ -105,6 +132,16 @@ async def _(
     user: User = Depends(get_user),
     token: str = Depends(get_confirm_token),
 ):
+    """
+    处理用户绑定确认指令（第二步）。
+
+    子账号使用主账号生成的请求令牌进行确认。
+    验证成功后，生成一个确认令牌，子账号需将此令牌发回给主账号进行最终确认。
+
+    :param session: 数据库会话
+    :param user: 当前发送指令的用户（子账号）
+    :param token: 从命令参数解析的请求令牌
+    """
     # 用户的子账号响应绑定请求触发的指令
     bind_token = await session.scalar(
         select(BindToken)
@@ -163,6 +200,16 @@ async def _(
     user: User = Depends(get_user),
     token: str = Depends(get_finalize_token),
 ):
+    """
+    处理用户绑定最终确认指令（第三步）。
+
+    主账号使用子账号生成的确认令牌完成绑定。
+    验证成功后，将子账号的所有认证信息（UserAuth）迁移至主账号下。
+
+    :param session: 数据库会话
+    :param user: 当前发送指令的用户（主账号）
+    :param token: 从命令参数解析的确认令牌
+    """
     # 1. 查找确认token
     bind_token = await session.scalar(
         select(BindToken)
@@ -186,12 +233,19 @@ async def _(
         )
         await BindUserFinalizeCommand.finish("绑定信息不完整，无法完成绑定。")
     # 使用数据库批量迁移，避免全部加载到内存
+    # 这里的逻辑是将子账号关联的 UserAuth 记录的 user_id 更新为主账号的 ID
+    # 但需要避免主账号下已经存在相同的认证信息（type, external_id 相同），否则会违反唯一约束
     userauth_tbl = UserAuth.__table__
+
+    # 子查询：用于检查主账号是否已经拥有相同的认证信息
     subq = select(1).where(
         (userauth_tbl.c.user_id == user.id)
         & (userauth_tbl.c.type == UserAuth.type)
         & (userauth_tbl.c.external_id == UserAuth.external_id)
     )
+
+    # 更新语句：更新子账号的 UserAuth 记录指向主账号，
+    # 前提是主账号没有相同的认证信息
     stmt = (
         update(UserAuth)
         .where(UserAuth.user_id == sub_user_id)
