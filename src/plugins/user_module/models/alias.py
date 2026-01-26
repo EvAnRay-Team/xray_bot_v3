@@ -6,17 +6,17 @@ from sqlalchemy.orm import Mapped, mapped_column
 from src.plugins.user_module.enums import AliasStatus
 
 
-class Abstract(Model):
-    __tablename__ = "abstracts"
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    music_id: Mapped[int]
-    user_id: Mapped[int]
-    nickname: Mapped[str]
-    file_key: Mapped[str]
-    create_time: Mapped[datetime] = mapped_column(default=datetime.now)
-    update_time: Mapped[datetime] = mapped_column(
-        default=datetime.now, onupdate=datetime.now
-    )
+# class Abstract(Model):
+#     __tablename__ = "abstracts"
+#     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+#     music_id: Mapped[int]
+#     user_id: Mapped[int]
+#     nickname: Mapped[str]
+#     file_key: Mapped[str]
+#     create_time: Mapped[datetime] = mapped_column(default=datetime.now)
+#     update_time: Mapped[datetime] = mapped_column(
+#         default=datetime.now, onupdate=datetime.now
+#     )
 
 
 class Alias(Model):
@@ -54,16 +54,3 @@ class AliasVote(Model):
     score: Mapped[int]
     create_time: Mapped[datetime] = mapped_column(default=datetime.now)
 
-
-class UserConfig(Model):
-    __tablename__ = "user_configs"
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    user_id: Mapped[int]
-    is_abstract: Mapped[bool]
-    maimai_best_50_style: Mapped[str]
-    maimai_icon: Mapped[str | None]
-    maimai_plate: Mapped[str | None]
-    maimai_frame: Mapped[str | None]
-    chu_prober_mode: Mapped[str]
-    create_group: Mapped[int | None]
-    create_time: Mapped[datetime] = mapped_column(default=datetime.now)

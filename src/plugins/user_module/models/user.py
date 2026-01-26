@@ -28,3 +28,16 @@ class UserAuth(Model):
     external_id: Mapped[str] = mapped_column(unique=True, nullable=True)
     type: Mapped[str]  # 认证类型，如 'qq', 'wechat' 等
     ext: Mapped[dict] = mapped_column(JSONType, default=dict, nullable=True)
+
+class UserConfig(Model):
+    __tablename__ = "user_configs"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[int]
+    is_abstract: Mapped[bool]
+    maimai_best_50_style: Mapped[str]
+    maimai_icon: Mapped[str | None]
+    maimai_plate: Mapped[str | None]
+    maimai_frame: Mapped[str | None]
+    chu_prober_mode: Mapped[str]
+    create_group: Mapped[int | None]
+    create_time: Mapped[datetime] = mapped_column(default=datetime.now)
