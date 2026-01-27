@@ -3,11 +3,10 @@ from uuid import UUID, uuid4
 from nonebot_plugin_orm import async_scoped_session
 from sqlalchemy import select
 
-from src.plugins.user_module.models.config_base import ConfigBase
+from src.libraries.models import ConfigBase, User, UserAuth
 
-from .enums import AdapterType
+from .models.enums import AdapterType
 from .exceptions import UnsupportedAdapterError
-from .models import User, UserAuth
 
 
 def get_adapter_type_by_name(adapter: str) -> AdapterType:

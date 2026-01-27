@@ -1,16 +1,26 @@
 from datetime import datetime
 from uuid import UUID
 
+import nonebot
 from nonebot_plugin_orm import Model
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, JSON
 
 try:
     from sqlalchemy.dialects.postgresql import JSONB
-
-    JSONType = JSONB
 except ImportError:
-    from sqlalchemy import JSON
+    JSONB = None
 
+try:
+    driver = nonebot.get_driver()
+    # Check if utilizing PostgreSQL
+    db_url = str(getattr(driver.config, "sqlalchemy_database_url", ""))
+    print(db_url)
+    if "postgres" in db_url and JSONB:
+        JSONType = JSONB
+    else:
+        JSONType = JSON
+except Exception:
+    # Fallback if driver not initialized or config missing
     JSONType = JSON
 from sqlalchemy.orm import Mapped, mapped_column
 

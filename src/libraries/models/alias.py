@@ -3,7 +3,7 @@ from datetime import datetime
 from nonebot_plugin_orm import Model
 from sqlalchemy.orm import Mapped, mapped_column
 
-from src.plugins.user_module.enums import AliasStatus
+from .enums import AliasStatus
 
 
 # class Abstract(Model):

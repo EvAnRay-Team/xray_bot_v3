@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Mapped, mapped_column
 
-from src.plugins.user_module.models.config_base import ConfigBase
+from src.libraries.models.config_base import ConfigBase
 
 
 class TestModuleConfig(ConfigBase):

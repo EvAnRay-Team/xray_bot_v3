@@ -5,7 +5,7 @@ from nonebot_plugin_orm import Model
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
-from plugins.user_module.enums import BindType
+from .enums import BindType
 
 
 class BindToken(Model):

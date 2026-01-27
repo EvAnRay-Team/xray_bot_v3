@@ -12,10 +12,11 @@ from nonebot_plugin_orm import async_scoped_session
 from sqlalchemy import exists, select, update
 from sqlalchemy.exc import SQLAlchemyError
 
-from plugins.user_module.enums import BindType
-from plugins.user_module.models.bind import BindToken
+from src.libraries.models.enums import BindType
+from src.libraries.models.bind import BindToken
 from src.plugins.user_module.deps import get_user
-from src.plugins.user_module.models.user import User, UserAuth
+from src.libraries.models.user import User, UserAuth
+
 
 from .rule import request_rule
 
@@ -181,9 +182,7 @@ async def _(
         try:
             await session.commit()
             await BindUserConfirmCommand.finish(
-                f"绑定请求已确认。请将以下握手令牌提供给主账号以完成绑定: {
-                    confirm_bind_token.token
-                }"
+                f"绑定请求已确认。请将以下握手令牌提供给主账号以完成绑定: {confirm_bind_token.token}"
             )
         except SQLAlchemyError as e:
             logger.error("生成确认令牌时发生数据库错误: %s", e)
