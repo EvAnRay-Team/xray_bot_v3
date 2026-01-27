@@ -18,6 +18,7 @@ def main():
     # 3. 显式加载插件
     # 必须加载 ORM 插件和你的业务插件，否则 SQLAlchemy 找不到模型映射
     nonebot.load_plugin("nonebot_plugin_orm")
+    nonebot.load_plugins("src/init")
 
     if len(sys.argv) < 2:
         print("Usage: python manage.py <command> [options]")

@@ -5,7 +5,7 @@ from sqlalchemy import select
 
 from src.libraries.models import ConfigBase, User, UserAuth
 
-from .models.enums import AdapterType
+from src.libraries.models.enums import AdapterType
 from .exceptions import UnsupportedAdapterError
 
 

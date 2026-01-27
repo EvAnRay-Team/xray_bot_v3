@@ -11,3 +11,7 @@ class AliasStatus(IntEnum):
 class BindType(str, Enum):
     REQUEST = "request"
     CONFIRM = "confirm"
+
+class AdapterType(str, Enum):
+    ONEBOT_V11 = "OneBot V11"
+    QQ = "qq"
