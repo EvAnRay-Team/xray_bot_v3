@@ -1,23 +1,12 @@
 from typing import Dict, Annotated, Any
 from pydantic import BaseModel, Field, BeforeValidator
-from .mai import MaiBasicInfo, MaiChart, MaiScoreInfo
-
-# 难度映射: level_index -> chart key
-DIFFICULTY_KEY_MAP = {
-    0: "basic",
-    1: "advanced",
-    2: "expert",
-    3: "master",
-    4: "re_master"
-}
-
+from .mai import MaiBasicInfo, MaiChart, MaiScoreInfo, DIFFICULTY_KEY_MAP
+from src.server.mai_music_server import total_music
 
 class MaiRecord(BaseModel):
     basic_info: MaiBasicInfo
     chart: MaiChart
     score_info: MaiScoreInfo
-    
-
 
 class DivingFishMaiRecord(BaseModel):
     song_id: int
@@ -39,8 +28,6 @@ class DivingFishMaiRecord(BaseModel):
         将 DivingFish 格式转换为 MaiRecord 格式
         通过 MaiMusicList 匹配并填充完整的 MaiBasicInfo 和 MaiChart
         """
-        # 延迟导入以避免循环导入
-        from src.server.mai_music_server import total_music  # type: ignore
         
         # 从 MaiMusicList 中查找对应的音乐
         music = total_music.find_by_id(self.song_id)

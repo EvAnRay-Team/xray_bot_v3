@@ -1,6 +1,6 @@
-from libraries.providers.mai import DivingFishMaiApi,LxnsMaiApi
-from libraries.schemas.mai_record import DIFFICULTY_KEY_MAP
-from libraries.schemas.mai_music import MaiMusicList
+from src.libraries.providers.mai import DivingFishMaiApi,LxnsMaiApi
+from src.libraries.schemas.mai import DIFFICULTY_KEY_MAP
+from src.libraries.schemas.mai_music import MaiMusicList
 from src.libraries.config.GLOBAL_PATH import MAI_MUSIC_DATA_PATH
 from nonebot.log import logger
 from pathlib import Path
@@ -302,6 +302,7 @@ class MaiMusicMerge():
                         charts[diff_name] = {
                             "difficulty": difficulty_index,
                             "level": lxns_diff.get("level", level_array[difficulty_index] if difficulty_index < len(level_array) else ""),
+                            "level_lable": diff_name,  # 使用 DIFFICULTY_KEY_MAP 对应的值
                             "constant": float(lxns_diff.get("level_value", ds_array[difficulty_index] if difficulty_index < len(ds_array) else 0.0)),
                             "designer": lxns_diff.get("note_designer", charter),
                             "notes": notes_obj
@@ -319,6 +320,7 @@ class MaiMusicMerge():
                         charts[diff_name] = {
                             "difficulty": idx,
                             "level": level_array[idx] if idx < len(level_array) else "",
+                            "level_lable": diff_name,  # 使用 DIFFICULTY_KEY_MAP 对应的值
                             "constant": float(ds_array[idx] if idx < len(ds_array) else 0.0),
                             "designer": df_chart.get("charter", "-"),
                             "notes": self.convert_notes_array_to_object(notes_array, song_type)
@@ -367,5 +369,5 @@ class MaiMusicMerge():
         
         logger.info(f"音乐数据已成功保存到 {output_path}")
 
-# MaiMusicMerge()
+MaiMusicMerge()
 total_music: MaiMusicList = MaiMusicList.from_json_file(Path(MAI_MUSIC_DATA_PATH))

@@ -1,7 +1,14 @@
 from pydantic import BaseModel, Field
 from typing import Optional, Any
 
-
+# 难度映射: level_index -> chart key
+DIFFICULTY_KEY_MAP = {
+    0: "basic",
+    1: "advanced",
+    2: "expert",
+    3: "master",
+    4: "re_master"
+}
 
 class MaiVersionInfo(BaseModel):
     text: str
@@ -30,6 +37,7 @@ class MaiNotes(BaseModel):
 class MaiChart(BaseModel):
     difficulty: int
     level: str
+    level_lable: str
     constant: float
     designer: str
     notes: MaiNotes
