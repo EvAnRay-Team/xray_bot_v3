@@ -2,10 +2,7 @@ from .base_client import BaseClient
 from typing import Optional, List
 import nonebot
 from nonebot.log import logger
-
 config = nonebot.get_driver().config
-
-from pydantic import TypeAdapter
 
 class DivingFishMaiApi(BaseClient):
     def __init__(self):
@@ -14,7 +11,6 @@ class DivingFishMaiApi(BaseClient):
         headers = {"developer-token": divingfish_developer_token}
         super().__init__(base_url=base_url, headers=headers)
         
-
     async def dev_player_record(self, user_id: int, music_id_list: Optional[List[str]]):
         payload :dict = {"qq":user_id}
         payload['music_id'] = music_id_list
@@ -22,8 +18,7 @@ class DivingFishMaiApi(BaseClient):
         resp = await self.client.post(f"/dev/player/record", json=payload)
         logger.info(f'post end,status_code: {resp.status_code}')
         resp.raise_for_status()
-        from src.libraries.schemas.mai_record import DivingFishPlayerRecordResponse
-        return TypeAdapter(DivingFishPlayerRecordResponse).validate_python(resp.json())
+        return resp.json()
     
     async def music_data(self):
         resp = await self.client.get("/music_data")
