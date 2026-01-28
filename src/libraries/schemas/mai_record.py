@@ -50,22 +50,22 @@ class DivingFishMaiRecord(BaseModel):
         else:
             raise ValueError(f"music not found: {self.song_id}")
 
-def transform_and_convert(data: Any) -> Any:
-    if not isinstance(data, dict):
-        return data
+# def transform_and_convert(data: Any) -> Any:
+#     if not isinstance(data, dict):
+#         return data
         
-    transformed = {}
-    for song_id, records in data.items():
-        if isinstance(records, list):
-            level_dict = {}
-            for record_data in records:
-                # Validate and parse using DivingFishMaiRecord
-                df_record = DivingFishMaiRecord.model_validate(record_data)
-                # Convert to generic MaiRecord
-                level_dict[df_record.level_index] = df_record.to_mai_record()
-            transformed[song_id] = level_dict
-        else:
-            transformed[song_id] = records
-    return transformed
+#     transformed = {}
+#     for song_id, records in data.items():
+#         if isinstance(records, list):
+#             level_dict = {}
+#             for record_data in records:
+#                 # Validate and parse using DivingFishMaiRecord
+#                 df_record = DivingFishMaiRecord.model_validate(record_data)
+#                 # Convert to generic MaiRecord
+#                 level_dict[df_record.level_index] = df_record.to_mai_record()
+#             transformed[song_id] = level_dict
+#         else:
+#             transformed[song_id] = records
+#     return transformed
 
-DivingFishPlayerRecordResponse = Annotated[Dict[str, Dict[int, MaiRecord]], BeforeValidator(transform_and_convert)]
+# DivingFishPlayerRecordResponse = Annotated[Dict[str, Dict[int, MaiRecord]], BeforeValidator(transform_and_convert)]
