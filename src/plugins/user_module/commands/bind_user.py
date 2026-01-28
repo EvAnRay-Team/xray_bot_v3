@@ -1,7 +1,7 @@
 import base64
 import re
 import secrets
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from uuid import uuid4
 
 from nonebot import logger, on_command
@@ -14,13 +14,13 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from src.libraries.models.enums import BindType
 from src.libraries.models.bind import BindToken
-from src.plugins.user_module.deps import get_user
+from src.dependencies.deps import get_user
 from src.libraries.models.user import User, UserAuth
 
 
-from .rule import request_rule
+from .rule import check_token_usage
 
-BindUserRequestCommand = on_command("bind_user_request", rule=request_rule, block=True)
+BindUserRequestCommand = on_command("bind_user_request", rule=to_me(), block=True)
 BindUserConfirmCommand = on_command("bind_user_confirm", rule=to_me(), block=True)
 BindUserFinalizeCommand = on_command("bind_user_finalize", rule=to_me(), block=True)
 
@@ -87,7 +87,10 @@ async def _(session: async_scoped_session, user: User = Depends(get_user)):
     :param user: 当前发送指令的用户（主账号）
     """
     # 用户的主账号发起绑定请求触发的指令
-    now = datetime.now(UTC)
+    if not await check_token_usage(session, user):
+        await BindUserRequestCommand.finish("您在过去24小时内生成的绑定令牌数量已达到上限（8个）。")
+
+    now = datetime.now()
     expires = now + timedelta(minutes=5)
     bind_token = None
     for _ in range(5):
@@ -116,10 +119,13 @@ async def _(session: async_scoped_session, user: User = Depends(get_user)):
     if bind_token:
         try:
             await session.commit()
+            await session.refresh(bind_token)
             await BindUserRequestCommand.finish(
                 f"已生成绑定令牌: {bind_token.token}\n请在5分钟内完成绑定。"
             )
         except SQLAlchemyError as e:
+            import traceback
+            logger.error(traceback.format_exc())
             logger.error("生成绑定令牌时发生数据库错误: %s", e)
             await BindUserRequestCommand.finish("生成绑定令牌失败，请稍后重试。")
     else:
@@ -148,11 +154,11 @@ async def _(
         select(BindToken)
         .where(BindToken.token == token)
         .where(BindToken.type == BindType.REQUEST)
-        .where(BindToken.expires_at > datetime.now(UTC))
+        .where(BindToken.expires_at > datetime.now())
     )
     if bind_token is None:
         await BindUserConfirmCommand.finish("无效或已过期的绑定令牌。")
-    now = datetime.now(UTC)
+    now = datetime.now()
     expires = now + timedelta(minutes=5)
     confirm_bind_token = None
     for _ in range(5):
@@ -181,6 +187,7 @@ async def _(
     if confirm_bind_token:
         try:
             await session.commit()
+            await session.refresh(confirm_bind_token)
             await BindUserConfirmCommand.finish(
                 f"绑定请求已确认。请将以下握手令牌提供给主账号以完成绑定: {confirm_bind_token.token}"
             )
@@ -215,7 +222,7 @@ async def _(
         .where(BindToken.token == token)
         .where(BindToken.type == BindType.CONFIRM)
         .where(BindToken.main_user_id == user.id)
-        .where(BindToken.expires_at > datetime.now(UTC))
+        .where(BindToken.expires_at > datetime.now())
     )
     if not bind_token:
         logger.warning(
@@ -234,23 +241,28 @@ async def _(
     # 使用数据库批量迁移，避免全部加载到内存
     # 这里的逻辑是将子账号关联的 UserAuth 记录的 user_id 更新为主账号的 ID
     # 但需要避免主账号下已经存在相同的认证信息（type, external_id 相同），否则会违反唯一约束
-    userauth_tbl = UserAuth.__table__
 
-    # 子查询：用于检查主账号是否已经拥有相同的认证信息
-    subq = select(1).where(
-        (userauth_tbl.c.user_id == user.id)
-        & (userauth_tbl.c.type == UserAuth.type)
-        & (userauth_tbl.c.external_id == UserAuth.external_id)
+    # 1. 先查出子账号拥有的所有认证记录
+    sub_auths = await session.scalars(
+        select(UserAuth).where(UserAuth.user_id == sub_user_id)
     )
-
-    # 更新语句：更新子账号的 UserAuth 记录指向主账号，
-    # 前提是主账号没有相同的认证信息
-    stmt = (
-        update(UserAuth)
-        .where(UserAuth.user_id == sub_user_id)
-        .where(~exists(subq))
-        .values(user_id=user.id)
-    )
-    await session.execute(stmt)
+    
+    for auth in sub_auths:
+        # 2. 检查主账号是否已经有同类型的认证
+        exists_stmt = select(UserAuth).where(
+            UserAuth.user_id == user.id,
+            UserAuth.type == auth.type,
+            UserAuth.external_id == auth.external_id
+        )
+        already_has = await session.scalar(exists_stmt)
+        
+        if not already_has:
+            # 3. 只有不存在时才转移归属权
+            auth.ext = {"original_id": str(auth.user_id)}
+            auth.user_id = user.id
+        else:
+            # 4. 如果主账号已经有了，说明子账号的这条记录是冗余的，直接删除
+            await session.delete(auth)
+    
     await session.commit()
     await BindUserFinalizeCommand.finish("绑定完成，所有认证信息已合并到主账号。")

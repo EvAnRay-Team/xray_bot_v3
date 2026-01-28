@@ -25,6 +25,8 @@ async def get_user(bot: Bot, event: Event) -> User:
     user = await get_user_by_adapter_and_external_id(session, adapter_name, user_id)
     if user is None:
         user = await create_user(session, adapter_name, user_id)
+        await session.commit()
+        await session.refresh(user)
     return user
 
 def get_user_config(
@@ -42,6 +44,8 @@ def get_user_config(
         config = await crud_get_user_config(session, config_cls, user.id)
         if config is None:
             config = await crud_create_user_config(session, config_cls, user.id)
+            await session.commit()
+            await session.refresh(config)
         return config
 
     return dependency

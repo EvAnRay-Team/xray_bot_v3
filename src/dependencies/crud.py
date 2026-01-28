@@ -15,6 +15,8 @@ def get_adapter_type_by_name(adapter: str) -> AdapterType:
             return AdapterType.ONEBOT_V11
         case "QQ":
             return AdapterType.QQ
+        case "Discord":
+            return AdapterType.DISCORD
         case _:
             raise UnsupportedAdapterError(adapter)
 

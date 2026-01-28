@@ -3,7 +3,7 @@ from nonebot.params import Depends
 from nonebot_plugin_orm import async_scoped_session
 
 from src.plugins.test_module.config import TestModuleConfig
-from src.plugins.user_module.deps import get_user_config
+from src.dependencies.deps import get_user_config
 
 PingCommand = on_command("ping", block=True)
 
