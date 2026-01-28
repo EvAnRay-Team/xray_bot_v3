@@ -21,3 +21,11 @@ TAROT_PATH = os.path.join(STATIC_PATH, "tarot")
 MAIMAIDX_STATIC_PATH = os.path.join(STATIC_PATH, "maimaidx")
 NORMAL_COVER_PATH = os.path.join(MAIMAIDX_STATIC_PATH, "normal_cover")
 ABSTRACT_COVER_PATH = os.path.join(MAIMAIDX_STATIC_PATH, "abstract_cover")
+
+
+
+MAIMAIDX_DATA_PATH = os.path.join(RESOURCE_PATH, "maimaidx")
+
+
+# Music Data Paths
+MAI_MUSIC_DATA_PATH = os.path.join(MAIMAIDX_DATA_PATH, "music_data.json")

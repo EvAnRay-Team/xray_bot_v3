@@ -1,11 +1,22 @@
 from typing import Dict, Annotated, Any
 from pydantic import BaseModel, Field, BeforeValidator
-from .mai import MaiBasicInfo, MaiCharts, MaiScoreInfo
+from .mai import MaiBasicInfo, MaiChart, MaiScoreInfo
+
+# 难度映射: level_index -> chart key
+DIFFICULTY_KEY_MAP = {
+    0: "basic",
+    1: "advanced",
+    2: "expert",
+    3: "master",
+    4: "re_master"
+}
+
 
 class MaiRecord(BaseModel):
     basic_info: MaiBasicInfo
-    charts: MaiCharts
+    chart: MaiChart
     score_info: MaiScoreInfo
+    
 
 
 class DivingFishMaiRecord(BaseModel):
@@ -24,28 +35,33 @@ class DivingFishMaiRecord(BaseModel):
     ra: int
 
     def to_mai_record(self) -> MaiRecord:
-        # Map fields from DivingFish format to generic MaiRecord format
-        return MaiRecord(
-            basic_info=MaiBasicInfo(
-                id=self.song_id,
-                title=self.title,
-                type=self.type
-            ),
-            charts=MaiCharts(
-                difficulty=self.level_index,
-                level=self.level,
-                constant=self.ds
-            ),
-            score_info=MaiScoreInfo(
-                achievement=self.achievements,
-                rank=self.rate,
-                rating=self.ra,
-                dx_rate=self.ra,
-                dx_score=self.dx_score,
-                combo_status=self.fc,
-                sync_status=self.fs
+        """
+        将 DivingFish 格式转换为 MaiRecord 格式
+        通过 MaiMusicList 匹配并填充完整的 MaiBasicInfo 和 MaiChart
+        """
+        # 延迟导入以避免循环导入
+        from src.server.mai_music_server import total_music  # type: ignore
+        
+        # 从 MaiMusicList 中查找对应的音乐
+        music = total_music.find_by_id(self.song_id)
+        difficulty = DIFFICULTY_KEY_MAP[self.level_index]
+        # 构建 basic_info
+        if music and music.charts:
+            return MaiRecord(
+                basic_info=music.basic_info,
+                chart=music.charts[difficulty],
+                score_info=MaiScoreInfo(
+                    achievement=self.achievements,
+                    rank=self.rate,
+                    rating=self.ra,
+                    dx_rate=self.ra,
+                    dx_score=self.dx_score,
+                    combo_status=self.fc,
+                    sync_status=self.fs
+                )
             )
-        )
+        else:
+            raise ValueError(f"music not found: {self.song_id}")
 
 def transform_and_convert(data: Any) -> Any:
     if not isinstance(data, dict):
