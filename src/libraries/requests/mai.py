@@ -3,7 +3,7 @@ Mai 相关的请求层，负责调用 API 并将响应转换为实体对象
 """
 from typing import Optional, List, Dict
 from src.libraries.providers.mai import DivingFishMaiApi
-from src.libraries.schemas.mai_record import DivingFishMaiRecord, MaiRecord
+from src.libraries.schemas.mai_record import MaiRecordList, DivingFishMaiRecord
 from nonebot.log import logger
 
 
@@ -17,7 +17,7 @@ class MaiRequestService:
         self, 
         user_id: int, 
         music_id_list: Optional[List[str]] = None
-    ):
+    ) -> MaiRecordList:
         """
         获取玩家记录并实体化为 MaiRecord 对象
         
@@ -26,20 +26,19 @@ class MaiRequestService:
             music_id_list: 音乐 ID 列表，可选
             
         Returns:
-            Dict[str, Dict[int, MaiRecord]]: 歌曲ID -> 难度索引 -> MaiRecord
+            MaiRecordList: 包含所有 MaiRecord 的列表
         """
         # 调用 API 获取原始数据
-        raw_data = await self.api.dev_player_record(user_id, music_id_list)
-        
-        # 转换为实体对象
-        result: Dict[str, Dict[int, MaiRecord]] = {}
-        
+        # API 返回格式: Dict[str, List[dict]]，其中 key 是歌曲ID，value 是该歌曲的所有难度记录列表
+        raw_data: Dict[str, List[dict]] = await self.api.dev_player_record(user_id, music_id_list)
+
+        result = []
+
+        # 遍历所有歌曲的所有记录
         for song_id_str, records_list in raw_data.items():
             if not isinstance(records_list, list):
                 logger.warning(f"Unexpected record format for song {song_id_str}: {type(records_list)}")
                 continue
-                
-            level_dict: Dict[int, MaiRecord] = {}
             
             for record_data in records_list:
                 try:
@@ -49,16 +48,15 @@ class MaiRequestService:
                     # 转换为 MaiRecord（会自动从 total_music 中查找完整的音乐信息）
                     mai_record = df_record.to_mai_record()
                     
-                    # 使用 level_index 作为键
-                    level_dict[df_record.level_index] = mai_record
+                    result.append(mai_record)
                 except Exception as e:
-                    logger.error(f"Failed to convert record for song {song_id_str}, level_index {record_data.get('level_index', 'unknown')}: {e}")
+                    logger.error(
+                        f"Failed to convert record for song {song_id_str}, "
+                        f"level_index {record_data.get('level_index', 'unknown')}: {e}"
+                    )
                     continue
-            
-            if level_dict:
-                result[song_id_str] = level_dict
-        
-        return result
+
+        return MaiRecordList(records=result)
     
     async def get_music_data(self) -> list:
         """

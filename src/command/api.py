@@ -24,11 +24,10 @@ class Command(BaseCommand):
         )
         
         # 遍历结果
-        for song_id, levels in dev_player_record.items():
-            for level_index, record in levels.items():
-                logger.info(
-                    f'id:【{record.basic_info.id}】,'
-                    f'title:【{record.basic_info.title}】,'
-                    f'level:【{record.chart.level_lable}】,'
-                    f'achievement:【{record.score_info.achievement}】'
-                )
+        for record in dev_player_record:
+            logger.info(
+                f'id:【{record.basic_info.id}】,'
+                f'title:【{record.basic_info.title}】,'
+                f'level:【{record.chart.level_lable}】,'
+                f'achievement:【{record.score_info.achievement}】'
+            )

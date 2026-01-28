@@ -1,12 +1,25 @@
-from typing import Dict, Annotated, Any
-from pydantic import BaseModel, Field, BeforeValidator
+from pydantic import BaseModel, Field
 from .mai import MaiBasicInfo, MaiChart, MaiScoreInfo, DIFFICULTY_KEY_MAP
 from src.server.mai_music_server import total_music
+
+
 
 class MaiRecord(BaseModel):
     basic_info: MaiBasicInfo
     chart: MaiChart
     score_info: MaiScoreInfo
+
+class MaiRecordList(BaseModel):
+    records: list[MaiRecord]
+
+    def __getitem__(self, index: int) -> MaiRecord:
+        return self.records[index]
+    
+    def __len__(self) -> int:
+        return len(self.records)
+    
+    def __iter__(self):
+        return iter(self.records)
 
 class DivingFishMaiRecord(BaseModel):
     song_id: int
