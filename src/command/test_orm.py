@@ -1,6 +1,6 @@
 from command.base import BaseCommand
 import asyncio
-from plugins.user_module.models.test_orm import TestOrm
+from src.libraries.models.test_orm import TestOrm
 from nonebot_plugin_orm import get_session
 
 class Command(BaseCommand):

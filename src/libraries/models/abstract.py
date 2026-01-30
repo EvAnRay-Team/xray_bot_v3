@@ -9,7 +9,7 @@ class Abstract(Model):
     __tablename__ = "abstracts"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     music_id: Mapped[int]
-    user_id: Mapped[int]
+    user_id: Mapped[str]
     nickname: Mapped[str]
     file_key: Mapped[str]
     create_time: Mapped[datetime] = mapped_column(default=datetime.now)
