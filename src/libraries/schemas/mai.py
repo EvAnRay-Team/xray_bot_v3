@@ -13,6 +13,8 @@ DIFFICULTY_KEY_MAP = {
 class MaiVersionInfo(BaseModel):
     text: str
     id: int
+    cn_ver: Optional[str] = None  # 中文版本名，如果不存在则根据 text 生成
+    short_ver: Optional[str] = None  # 英文版本名，如果不存在则根据 text 生成
 
 class MaiBasicInfo(BaseModel):
     id: int
@@ -47,7 +49,7 @@ class MaiCharts(BaseModel):
     # 使用 model_config 和 extra = "allow" 来允许动态键名
     model_config = {"extra": "allow"}
     
-    def __getattr__(self, name: str) -> MaiChart:
+    def __getattr__(self, name: str) -> MaiChart | None:
         """支持属性访问，如 charts.BASIC"""
         if name.startswith('_'):
             raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
@@ -65,8 +67,8 @@ class MaiCharts(BaseModel):
             return object.__getattribute__(self, name)
         except AttributeError:
             pass
-        
-        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+        return None
+        # raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
     
     def __getitem__(self, key: str) -> MaiChart:
         """支持字典式访问，如 charts['BASIC']"""
@@ -75,6 +77,10 @@ class MaiCharts(BaseModel):
     def __setitem__(self, key: str, value: MaiChart) -> None:
         """支持字典式设置"""
         setattr(self, key, value)
+
+    def __len__(self) -> int:
+        """返回所有键的数量"""
+        return len(self.keys())
     
     def keys(self):
         """返回所有键"""
@@ -94,6 +100,12 @@ class MaiCharts(BaseModel):
     def items(self):
         """返回所有键值对"""
         return [(k, getattr(self, k)) for k in self.keys()]
+    
+    def get_chart_list(self):
+        """返回所有chart列表"""
+        chart_list = [self.basic, self.advanced, self.expert, self.master, self.re_master] if self.re_master else [self.basic, self.advanced, self.expert, self.master]
+        return [chart for chart in chart_list if chart is not None]
+        
 
 class MaiUtageInfo(BaseModel):
     level: str
@@ -210,10 +222,15 @@ class MaiMusic(BaseModel):
                     obj['utage_charts'] = MaiUtageCharts(**charts_data)
         
         return super().model_validate(obj)
-    
+
     def is_utage(self) -> bool:
         """判断是否是宴谱"""
         return self.utage_info is not None and self.utage_charts is not None
+    
+    def is_re_master(self) -> bool:
+        """判断是否有白谱"""
+        return self.charts is not None and self.charts.re_master is not None
+    
 
 class MaiScoreInfo(BaseModel):
     achievement: float

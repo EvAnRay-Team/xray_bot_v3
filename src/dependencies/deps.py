@@ -4,9 +4,7 @@ from nonebot.adapters import Bot, Event
 from nonebot.params import Depends
 from nonebot_plugin_orm import get_scoped_session
 
-from src.libraries.models.config_base import ConfigBase
-from src.libraries.models.user import User
-
+from src.libraries.models import ConfigBase, User
 
 from .crud import create_user, get_user_by_adapter_and_external_id
 from .crud import create_user_config as crud_create_user_config
@@ -49,3 +47,6 @@ def get_user_config(
         return config
 
     return dependency
+
+def get_adapter_name(bot: Bot) -> str:
+    return bot.adapter.get_name()

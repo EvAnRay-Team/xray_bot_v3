@@ -9,4 +9,3 @@ class BaseClient:
             headers=headers,
             timeout=10.0
         )
-# HEADERS = {"Authorization": LXNSAUTH} 落雪

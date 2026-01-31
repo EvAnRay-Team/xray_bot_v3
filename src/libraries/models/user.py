@@ -14,7 +14,6 @@ try:
     driver = nonebot.get_driver()
     # Check if utilizing PostgreSQL
     db_url = str(getattr(driver.config, "sqlalchemy_database_url", ""))
-    print(db_url)
     if "postgres" in db_url and JSONB:
         JSONType = JSONB
     else:

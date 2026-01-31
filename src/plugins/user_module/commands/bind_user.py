@@ -13,9 +13,8 @@ from sqlalchemy import exists, select, update
 from sqlalchemy.exc import SQLAlchemyError
 
 from src.libraries.models.enums import BindType
-from src.libraries.models.bind import BindToken
+from src.libraries.models import User, UserAuth, BindToken
 from src.dependencies.deps import get_user
-from src.libraries.models.user import User, UserAuth
 
 
 from .rule import check_token_usage

@@ -1,4 +1,6 @@
 from .base_client import BaseClient
+from src.libraries.tools.execution_time import timing_decorator_async
+
 from typing import Optional, List
 import nonebot
 from nonebot.log import logger
@@ -10,7 +12,8 @@ class DivingFishMaiApi(BaseClient):
         divingfish_developer_token = getattr(config,"divingfish_developer_token")
         headers = {"developer-token": divingfish_developer_token}
         super().__init__(base_url=base_url, headers=headers)
-        
+    
+    @timing_decorator_async
     async def dev_player_record(self, user_id: int, music_id_list: Optional[List[str]]):
         payload :dict = {"qq":user_id}
         payload['music_id'] = music_id_list
@@ -20,6 +23,7 @@ class DivingFishMaiApi(BaseClient):
         resp.raise_for_status()
         return resp.json()
     
+    @timing_decorator_async
     async def music_data(self):
         resp = await self.client.get("/music_data")
         resp.raise_for_status()
@@ -32,7 +36,9 @@ class LxnsMaiApi(BaseClient):
         headers = {"Authorization": lxns_developer_token}
         super().__init__(base_url=base_url, headers=headers)
 
+    @timing_decorator_async
     async def song_list(self):
         resp = await self.client.get(f"/maimai/song/list")
         resp.raise_for_status()
         return resp.json()
+    

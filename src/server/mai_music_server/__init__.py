@@ -2,7 +2,9 @@ from src.libraries.providers.mai import DivingFishMaiApi,LxnsMaiApi
 from src.libraries.schemas.mai import DIFFICULTY_KEY_MAP
 from src.libraries.schemas.mai_music import MaiMusicList
 from src.libraries.config.GLOBAL_PATH import MAI_MUSIC_DATA_PATH
+from src.libraries.config.constants.maimai import VERSION_EZ_MAP
 from nonebot.log import logger
+import nonebot
 from pathlib import Path
 import json
 import asyncio
@@ -334,6 +336,52 @@ class MaiMusicMerge():
             merged_data.append(merged_song)
             stats["total"] += 1
         
+        # 添加字段转换逻辑
+        for item in merged_data:
+            basic_info = item.get("basic_info", {})
+            version = basic_info.get("version", {})
+            # 从 version.text 获取 from 值，如果没有则尝试从 basic_info.from 获取
+            from_value = version.get("text", "") or basic_info.get("from", "")
+            
+            # 添加 cn_ver 字段到 version 对象
+            if from_value == "maimai でらっくす":
+                version["cn_ver"] = "舞萌DX"
+            elif from_value == "maimai でらっくす Splash":
+                version["cn_ver"] = "舞萌DX 2021"
+            elif from_value == "maimai でらっくす UNiVERSE":
+                version["cn_ver"] = "舞萌DX 2022"
+            elif from_value == "maimai でらっくす FESTiVAL":
+                version["cn_ver"] = "舞萌DX 2023"
+            elif from_value == "maimai でらっくす BUDDiES":
+                version["cn_ver"] = "舞萌DX 2024"
+            elif from_value == "maimai でらっくす PRiSM":
+                version["cn_ver"] = "舞萌DX 2025"
+            else:
+                version["cn_ver"] = from_value
+            
+            # 添加 ez_from 字段到 basic_info
+            cn_ver = version.get("cn_ver", "")
+            if cn_ver == "maimai":
+                version["short_ver"] = "maimai"
+            else:
+                ez_ver = str(cn_ver).replace("maimai ", "")
+                version["short_ver"] = f"{VERSION_EZ_MAP.get(ez_ver, ez_ver)}"
+            
+            # 转换 genre 字段
+            genre = basic_info.get("genre", "")
+            if genre in ["舞萌", "maimai"]:
+                basic_info["genre"] = "舞萌痴"
+            elif genre in ["POPSアニメ", "流行&动漫"]:
+                basic_info["genre"] = "现充&二次元"
+            elif genre in ["音击&中二节奏", "オンゲキCHUNITHM"]:
+                basic_info["genre"] = "幼击&除你祖母"
+            elif genre in ["niconico & VOCALOID", "niconicoボーカロイド"]:
+                basic_info["genre"] = "术&力&口"
+            elif genre in ["東方Project", "东方Project"]:
+                basic_info["genre"] = "车万Project"
+            elif genre in ["其他游戏", "ゲームバラエティ"]:
+                basic_info["genre"] = "骑她游嘻"
+        
         # 输出合并统计信息
         logger.info("合并完成，统计信息：")
         logger.info(f"  总歌曲数: {stats['total']}")
@@ -369,5 +417,6 @@ class MaiMusicMerge():
         
         logger.info(f"音乐数据已成功保存到 {output_path}")
 
-MaiMusicMerge()
+if nonebot.get_driver().config.is_auto_update_music_data:
+    MaiMusicMerge()
 total_music: MaiMusicList = MaiMusicList.from_json_file(Path(MAI_MUSIC_DATA_PATH))

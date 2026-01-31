@@ -5,9 +5,8 @@ from nonebot.rule import to_me
 from nonebot_plugin_orm import get_scoped_session
 from sqlalchemy import select
 
-from src.libraries.models.bind import BindToken
+from src.libraries.models import BindToken, User
 from src.dependencies.deps import get_user
-from src.libraries.models.user import User
 
 
 # 这是一个用于限制命令触发频率的守卫逻辑，防止用户在短时间内生成过多的 BindToken。
