@@ -6,13 +6,26 @@ from nonebot.log import logger
 import pymongo
 from pathlib import Path
 import puremagic
-from src.libraries.models.abstract import Abstract
+from src.libraries.models import Abstract
 from nonebot_plugin_orm import get_session
+from src.server.mai_music_server import total_music
 import asyncio
+from sqlalchemy import select
+
 
 class Command(BaseCommand):
     def handle(self, **options):
-        asyncio.run(self.run_async())
+        asyncio.run(self.demo())
+
+    async def demo(self):
+        async with get_session() as session:
+            stmt = select(Abstract.music_id).group_by(Abstract.music_id)
+            result = await session.execute(stmt)
+            users = result.scalars().all()
+            music_id_list = [item for item in users]
+            for m in total_music.get_normal_musics():
+                if m.basic_info.id not in music_id_list:
+                    print(m.basic_info)
 
     async def run_async(self):
         # 定义 MIME 类型到后缀的映射，涵盖更多真实类型
@@ -39,7 +52,7 @@ class Command(BaseCommand):
                     nickname = abs['nickname']
                     file_name = abs['file_name']
                     cover_file = Path(cover_base_path + f"{file_name}.png")
-                    
+                    bak_cover_file = Path('/Users/Ekzykes/Project/xray_mai_bot_v2/src/static/maimaidx/abstract_cover_bak/' + f"{file_name}.png")
                     if cover_file.exists():
                         try:
                             with open(cover_file, 'rb') as f:
@@ -57,20 +70,21 @@ class Command(BaseCommand):
                             key = f"maimaidx/abstract_cover/{md5[:2]}/{md5[2:4]}/{md5}{real_ext}"
                             save_path = save_dir / key
                             save_path.parent.mkdir(exist_ok=True,parents=True)
-                            if not save_path.exists():
-                                shutil.copy(cover_file, save_path)
-                                logger.info(f"已保存 {file_name} 到 {save_path}")
+                            # if not save_path.exists():
+                            # shutil.copy(cover_file, save_path)
+                            shutil.move(cover_file,bak_cover_file)
+                            logger.info(f"已保存 {file_name} 到 {save_path}")
 
-                            ab = Abstract(
-                                music_id=int(music_id),
-                                user_id=str(user_id),
-                                nickname=nickname,
-                                file_key=str(key)
-                            )
-                            session.add(ab)
+                            # ab = Abstract(
+                            #     music_id=int(music_id),
+                            #     user_id=str(user_id),
+                            #     nickname=nickname,
+                            #     file_key=str(key)
+                            # )
+                            # session.add(ab)
 
                         except Exception as e:
                             logger.error(f"处理 {file_name} 时出错: {e}")
                     else:
                         logger.info(f'歌曲ID：【{music_id}】-昵称：【{nickname}】-ID：【{user_id}】，文件名：【{file_name}】')
-            await session.commit()
+            # await session.commit()
