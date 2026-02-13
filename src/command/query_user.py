@@ -1,7 +1,7 @@
 from command.base import BaseCommand
 import asyncio
 from sqlalchemy import select
-from plugins.user_module.models.user import User
+from src.libraries.models import User
 from nonebot_plugin_orm import get_session
 
 class Command(BaseCommand):

@@ -16,10 +16,10 @@ def _textsize_compat(self: ImageDraw.ImageDraw, txt, font=None, spacing=4, direc
 
 # 仅当不存在 getsize 时才打补丁
 if not hasattr(ImageFont.FreeTypeFont, 'getsize'):
-    ImageFont.FreeTypeFont.getsize = _getsize_compat
+    ImageFont.FreeTypeFont.getsize = _getsize_compat  # type: ignore
 
 if not hasattr(ImageDraw.ImageDraw, 'textsize'):
-    ImageDraw.ImageDraw.textsize = _textsize_compat
+    ImageDraw.ImageDraw.textsize = _textsize_compat  # type: ignore
 
 # 添加项目根目录到路径
 current_dir = os.path.dirname(os.path.abspath(__file__))

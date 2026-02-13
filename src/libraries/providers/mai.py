@@ -14,7 +14,7 @@ class DivingFishMaiApi(BaseClient):
         super().__init__(base_url=base_url, headers=headers)
     
     @timing_decorator_async
-    async def dev_player_record(self, user_id: int, music_id_list: Optional[List[str]]):
+    async def dev_player_record(self, user_id: int, music_id_list: Optional[List[int]]):
         payload :dict = {"qq":user_id}
         payload['music_id'] = music_id_list
         logger.info(f'post start,payload: {payload},endpoint: /dev/player/record')

@@ -16,7 +16,7 @@ class MaiRequestService:
     async def get_player_record(
         self, 
         user_id: int, 
-        music_id_list: Optional[List[str]] = None
+        music_id_list: Optional[List[int]] = None
     ) -> MaiRecordList:
         """
         获取玩家记录并实体化为 MaiRecord 对象

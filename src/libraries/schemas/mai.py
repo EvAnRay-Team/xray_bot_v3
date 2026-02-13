@@ -101,10 +101,10 @@ class MaiCharts(BaseModel):
         """返回所有键值对"""
         return [(k, getattr(self, k)) for k in self.keys()]
     
-    def get_chart_list(self):
+    def get_chart_list(self, dump: bool = False):
         """返回所有chart列表"""
         chart_list = [self.basic, self.advanced, self.expert, self.master, self.re_master] if self.re_master else [self.basic, self.advanced, self.expert, self.master]
-        return [chart for chart in chart_list if chart is not None]
+        return [chart.model_dump() if dump else chart for chart in chart_list if chart is not None]
         
 
 class MaiUtageInfo(BaseModel):

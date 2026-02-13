@@ -5,9 +5,14 @@ from src.server.mai_music_server import total_music
 
 
 class MaiRecord(BaseModel):
-    basic_info: MaiBasicInfo
-    chart: MaiChart
-    score_info: MaiScoreInfo
+    id: int
+    difficulty: int
+    achievements: float
+    dx_score: int
+    combo_status: str
+    sync_status: str
+    rate: float | int | None = None
+
 
 class MaiRecordList(BaseModel):
     records: list[MaiRecord]
@@ -43,25 +48,18 @@ class DivingFishMaiRecord(BaseModel):
         """
         
         # 从 MaiMusicList 中查找对应的音乐
-        music = total_music.find_by_id(self.song_id)
-        difficulty = DIFFICULTY_KEY_MAP[self.level_index]
+        # music = total_music.find_by_id(self.song_id)
+        # difficulty = DIFFICULTY_KEY_MAP[self.level_index]
         # 构建 basic_info
-        if music and music.charts:
-            return MaiRecord(
-                basic_info=music.basic_info,
-                chart=music.charts[difficulty],
-                score_info=MaiScoreInfo(
-                    achievement=self.achievements,
-                    rank=self.rate,
-                    rating=self.ra,
-                    dx_rate=self.ra,
-                    dx_score=self.dx_score,
-                    combo_status=self.fc,
-                    sync_status=self.fs
-                )
-            )
-        else:
-            raise ValueError(f"music not found: {self.song_id}")
+
+        return MaiRecord(
+            id=self.song_id,
+            difficulty=self.level_index,
+            achievements=self.achievements,
+            dx_score=self.dx_score,
+            combo_status=self.fc,
+            sync_status=self.fs,
+        )
 
 # def transform_and_convert(data: Any) -> Any:
 #     if not isinstance(data, dict):
